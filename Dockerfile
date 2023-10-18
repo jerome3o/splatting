@@ -27,10 +27,12 @@ RUN apt-get update \
     libcgal-dev \
     libceres-dev
 
+ARG CUDA_ARCHITECTURES=75;89
+
 RUN git clone https://github.com/colmap/colmap.git
 RUN mkdir -p colmap/build
 # TODO: parameterise architecture
-RUN cd colmap/build && cmake .. -GNinja -DCMAKE_CUDA_ARCHITECTURES=75
+RUN cd colmap/build && cmake .. -GNinja -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHITECTURES}
 RUN cd colmap/build && ninja
 RUN cd colmap/build && ninja install
 
@@ -46,16 +48,19 @@ RUN conda init
 
 WORKDIR /splatting/
 
-COPY environment.yml .
-COPY submodules/ submodules/
+COPY ./gaussian-splatting/environment.yml .
+COPY ./gaussian-splatting/submodules/ submodules/
 
+# I assume this is the name as the CUDA_ARCHITECTURES except /10. The ARG should be used here
+# Values taken from https://github.com/pytorch/extension-cpp/issues/71#issuecomment-1183674660
 ENV TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
 RUN conda env create --file environment.yml
 
 RUN echo "conda activate gaussian_splatting" >> ~/.bashrc
 SHELL ["/bin/bash", "--login", "-c"]
 
-COPY ./ ./
+COPY ./gaussian-splatting/* ./
+COPY ./process.sh .
 
 ENV PYTHONPATH=.
 
