@@ -8,7 +8,7 @@ import shutil
 from dagster import asset, define_asset_job, get_dagster_logger, Config, ConfigurableResource
 
 from dagsplat.marshaller import Marshaller
-from dagsplat.constants import SPLAT_PYTHON_INTERPRETER
+from dagsplat.constants import SPLAT_PYTHON_INTERPRETER, SPLAT_DIR
 
 _logger = get_dagster_logger()
 
@@ -19,7 +19,7 @@ _IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png"]
 class GaussianSplatConfig(ConfigurableResource):
     input_dir: str
     root_dir: str = None
-    splatting_repo_dir: str = "gaussian-splatting"
+    splatting_repo_dir: str = SPLAT_DIR
     splatting_python_interpreter: str = SPLAT_PYTHON_INTERPRETER
 
     def get_root_dir(self) -> str:

@@ -17,14 +17,6 @@ def main():
                     "gaussian_splat_config": {
                         "config": {
                             "input_dir": p,
-                            "splatting_repo_dir": "gaussian-splatting",
-                        }
-                    }
-                },
-                "ops": {
-                    "frames": {
-                        "config": {
-                            "frames_per_second": 6
                         }
                     }
                 }

@@ -72,3 +72,11 @@ WORKDIR /dagster/
 COPY requirements.txt .
 
 RUN pip install -r requirements.txt
+
+ENV SPLAT_PYTHON_INTERPRETER=/opt/conda/envs/gaussian_splatting/bin/python \
+  SPLAT_DIR=/splatting/
+
+COPY dagster.yaml .
+COPY dagsplat/ dagsplat/
+
+CMD ["dagster", "dev", "-m", "dagsplat", "--host", "0.0.0.0"]
