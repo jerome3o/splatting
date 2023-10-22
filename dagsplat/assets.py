@@ -6,23 +6,32 @@ _logger = get_dagster_logger()
 
 
 @asset
-def test_asset() -> int:
-    time.sleep(5)
-    _logger.info("returning 1")
-    return 1
+def frames() -> str:
+    return "todo"
+
 
 @asset
-def test_asset_2(test_asset: int):
-    time.sleep(5)
-    _logger.info("finishing asset 2")
-    pass
+def point_cloud(test_asset: str) -> str:
+    return "todo"
+
+
+@asset
+def ply_file(point_cloud: None) -> str:
+    return "todo"
+
+
+@asset
+def splat_file(ply_file: str) -> str:
+    return "todo"
 
 
 test_job = define_asset_job(
     name="test_job",
     selection=[
-        test_asset,
-        test_asset_2,
+        frames,
+        point_cloud,
+        ply_file,
+        splat_file,
     ],
     config={
         "execution": {
@@ -38,8 +47,8 @@ test_job = define_asset_job(
 
 definitions = Definitions(
     assets=[
-        test_asset,
-        test_asset_2,
+        frames,
+        point_cloud,
     ],
     jobs=[test_job],
 )
