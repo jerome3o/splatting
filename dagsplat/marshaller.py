@@ -12,7 +12,10 @@ class Marshaller(ConfigurableResource):
 
         return location
 
-    def upload_dir(self, location: str, target: str) -> str:
+    def upload_dir(self, location: str, target: str):
+        if location == target:
+            return
+
         # just copy the whole directory
 
         # ensure location exists
