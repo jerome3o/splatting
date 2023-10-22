@@ -56,14 +56,19 @@ COPY ./gaussian-splatting/submodules/ submodules/
 ENV TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
 RUN conda env create --file environment.yml
 
-ENV PATH=/opt/conda/envs/gaussian_splatting:${PATH}
+ENV PATH=/opt/conda/envs/gaussian_splatting:/splatting:${PATH}
 
 RUN echo "conda activate gaussian_splatting" >> ~/.bashrc
 # SHELL ["/bin/bash", "--login", "-c"]
 
 COPY ./gaussian-splatting/* ./
-COPY ./process.sh .
 
-ENV PYTHONPATH=.
 
-CMD ["./process.sh"]
+
+## Dagsters specific - TODO(j.swannack): should be a different image
+WORKDIR /dagster/
+
+# scuffed combination of pip and conda environments
+COPY requirements.txt .
+
+RUN pip install -r requirements.txt
