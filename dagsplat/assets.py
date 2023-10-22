@@ -110,8 +110,30 @@ def point_cloud(
 
 
 @asset(deps=[point_cloud])
-def trained_ply_file() -> None:
-    pass
+def trained_ply_file(
+    marshaller: Marshaller,
+    gaussian_splat_config: GaussianSplatConfig,
+) -> None:
+    # python train.py -s $DATA_DIR
+
+    data_dir = marshaller.load_dir(gaussian_splat_config.root_dir)
+
+    # a better way to do this would be to use a python API
+    # but there isn't one for for this script, it's meant to be run from the command line
+    executable = sys.executable
+    script = str(Path(gaussian_splat_config.splatting_repo_dir) / "train.py")
+    result = subprocess.run(
+        [executable, script, "-s", str(data_dir)],
+        stdout=sys.stdout,
+        stderr=subprocess.PIPE,
+    )
+
+    if result.returncode != 0:
+        raise ValueError(
+            f"{script} failed with code {result.returncode} and stderr:\n\n{result.stderr.decode()}"
+        )
+
+    marshaller.upload_dir(data_dir, gaussian_splat_config.root_dir)
 
 
 @asset(deps=[trained_ply_file])
