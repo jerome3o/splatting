@@ -160,7 +160,17 @@ def trained_ply_file(
     script = str(Path(gaussian_splat_config.splatting_repo_dir) / "train.py")
     output_dir = Path(data_dir) / "output"
     result = subprocess.run(
-        [gaussian_splat_config.splatting_python_interpreter, script, "-s", str(data_dir), "--model_path", output_dir],
+        [
+            "conda",
+            "run",
+            "-n",
+            "gaussian_splatting",
+            script,
+            "-s",
+            str(data_dir),
+            "--model_path",
+            output_dir
+        ],
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
