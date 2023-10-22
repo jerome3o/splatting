@@ -16,9 +16,16 @@ _IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png"]
 
 
 class GaussianSplatConfig(ConfigurableResource):
-    input_dir: str = "data/splat_inputs/bedroom"
-    root_dir: str = "data/outputs/test"
+    input_dir: str
+    root_dir: str = None
     splatting_repo_dir: str = "gaussian-splatting"
+
+    def get_root_dir(self) -> str:
+        if self.root_dir:
+            return self.root_dir
+
+        # otherwise take the last folder of the input dir and add it to "data/outputs/"
+        return str(Path("data/outputs") / Path(self.input_dir).parts[-1])
 
 
 class FramesConfig(Config):
@@ -33,7 +40,7 @@ def frames(
     config: FramesConfig,
     gaussian_splat_config: GaussianSplatConfig,
 ) -> None:
-    output_dir = Path(gaussian_splat_config.root_dir) / "input"
+    output_dir = Path(gaussian_splat_config.get_root_dir()) / "input"
     output_dir.mkdir(exist_ok=True, parents=True)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -88,7 +95,7 @@ def point_cloud(
 ) -> None:
     # python convert.py -s $DATA_DIR
 
-    data_dir = marshaller.load_dir(gaussian_splat_config.root_dir)
+    data_dir = marshaller.load_dir(gaussian_splat_config.get_root_dir())
 
     # a better way to do this would be to use a python API
     # but there isn't one for for this script, it's meant to be run from the command line
@@ -105,7 +112,7 @@ def point_cloud(
             f"convert.py failed with code {result.returncode} and stderr:\n\n{result.stderr.decode()}"
         )
 
-    marshaller.upload_dir(data_dir, gaussian_splat_config.root_dir)
+    marshaller.upload_dir(data_dir, gaussian_splat_config.get_root_dir())
 
 
 
@@ -116,7 +123,7 @@ def trained_ply_file(
 ) -> None:
     # python train.py -s $DATA_DIR
 
-    data_dir = marshaller.load_dir(gaussian_splat_config.root_dir)
+    data_dir = marshaller.load_dir(gaussian_splat_config.get_root_dir())
 
     # a better way to do this would be to use a python API
     # but there isn't one for for this script, it's meant to be run from the command line
@@ -133,7 +140,7 @@ def trained_ply_file(
             f"{script} failed with code {result.returncode} and stderr:\n\n{result.stderr.decode()}"
         )
 
-    marshaller.upload_dir(data_dir, gaussian_splat_config.root_dir)
+    marshaller.upload_dir(data_dir, gaussian_splat_config.get_root_dir())
 
 
 @asset(deps=[trained_ply_file])
