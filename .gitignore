@@ -1,0 +1,6 @@
+.vscode/
+.env
+tmp*/
+.dagster_home/
+scratch/
+__pycache__/
