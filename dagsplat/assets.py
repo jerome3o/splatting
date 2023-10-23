@@ -1,4 +1,5 @@
 import sys
+import os
 import tempfile
 from pathlib import Path
 from pydantic import Field
@@ -12,7 +13,8 @@ from dagsplat.constants import SPLAT_PYTHON_INTERPRETER, SPLAT_DIR
 
 _logger = get_dagster_logger()
 
-_VIDEO_FILE_EXTENSIONS = ["mp4", "mkv", "flv", "mov", "avi"]
+# TODO(j.swannack): make case insensitive
+_VIDEO_FILE_EXTENSIONS = ["mp4", "mkv", "flv", "mov", "avi", "MP4", "MKV", "FLV", "MOV", "AVI"]
 _IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png"]
 
 
@@ -165,12 +167,19 @@ def trained_ply_file(
             "run",
             "-n",
             "gaussian_splatting",
+            "--no-capture-output",
+            "python",
             script,
             "-s",
-            str(data_dir),
+            str(Path(data_dir).resolve()),
             "--model_path",
-            output_dir
+            str(output_dir.resolve()),
         ],
+        env={
+            **os.environ,
+            "PYTHONPATH": str(Path(gaussian_splat_config.splatting_repo_dir).resolve()),
+        },
+        cwd=gaussian_splat_config.splatting_repo_dir,
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
