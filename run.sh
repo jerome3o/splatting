@@ -1,2 +1,9 @@
 sudo docker rm -f dagsplat
-sudo docker run --name dagsplat -v $(pwd)/data:/dagster/data -d -p 3000:3000 dagsplat:0.0.1
+sudo docker run \
+    -d \
+    --name dagsplat \
+    -e DAGSTER_HOME=/dagster/.dagster_home \
+    -p 3000:3000 \
+    -v $(pwd)/data:/dagster/data \
+    -v $(pwd)/.dagster_home_docker:/dagster/.dagster_home \
+    dagsplat:0.0.1

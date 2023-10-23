@@ -2,6 +2,7 @@
 .env
 tmp*/
 .dagster_home/
+.dagster_home_docker/
 scratch/
 __pycache__/
 data/

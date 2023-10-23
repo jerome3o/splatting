@@ -61,7 +61,7 @@ ENV PATH=/opt/conda/envs/gaussian_splatting:/splatting:${PATH}
 RUN echo "conda activate gaussian_splatting" >> ~/.bashrc
 # SHELL ["/bin/bash", "--login", "-c"]
 
-COPY ./gaussian-splatting/* ./
+COPY ./gaussian-splatting/. ./
 
 
 
@@ -78,5 +78,7 @@ ENV SPLAT_PYTHON_INTERPRETER=/opt/conda/envs/gaussian_splatting/bin/python \
 
 COPY dagster.yaml .
 COPY dagsplat/ dagsplat/
+RUN mkdir .dagster_home
+RUN cp /dagster/dagster.yaml /dagster/.dagster_home/dagster.yaml
 
 CMD ["dagster", "dev", "-m", "dagsplat", "--host", "0.0.0.0"]
