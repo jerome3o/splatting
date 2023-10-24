@@ -6,7 +6,13 @@ from pydantic import Field
 import subprocess
 import shutil
 
-from dagster import asset, define_asset_job, get_dagster_logger, Config, ConfigurableResource
+from dagster import (
+    asset,
+    define_asset_job,
+    get_dagster_logger,
+    Config,
+    ConfigurableResource,
+)
 
 from dagsplat.marshaller import Marshaller
 from dagsplat.constants import SPLAT_PYTHON_INTERPRETER, SPLAT_DIR
@@ -14,7 +20,18 @@ from dagsplat.constants import SPLAT_PYTHON_INTERPRETER, SPLAT_DIR
 _logger = get_dagster_logger()
 
 # TODO(j.swannack): make case insensitive
-_VIDEO_FILE_EXTENSIONS = ["mp4", "mkv", "flv", "mov", "avi", "MP4", "MKV", "FLV", "MOV", "AVI"]
+_VIDEO_FILE_EXTENSIONS = [
+    "mp4",
+    "mkv",
+    "flv",
+    "mov",
+    "avi",
+    "MP4",
+    "MKV",
+    "FLV",
+    "MOV",
+    "AVI",
+]
 _IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png"]
 
 
@@ -35,16 +52,29 @@ class GaussianSplatConfig(ConfigurableResource):
 class FramesConfig(Config):
     frames_per_second: int = 6
     max_frames: int = 600
-    video_file_extensions: list[str] = Field(default_factory=lambda: list(_VIDEO_FILE_EXTENSIONS))
-    image_file_extensions: list[str] = Field(default_factory=lambda: list(_IMAGE_FILE_EXTENSIONS))
+    video_file_extensions: list[str] = Field(
+        default_factory=lambda: list(_VIDEO_FILE_EXTENSIONS)
+    )
+    image_file_extensions: list[str] = Field(
+        default_factory=lambda: list(_IMAGE_FILE_EXTENSIONS)
+    )
 
 
 def get_length(filename: str):
-    result = subprocess.run(["ffprobe", "-v", "error", "-show_entries",
-                             "format=duration", "-of",
-                             "default=noprint_wrappers=1:nokey=1", filename],
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            filename,
+        ],
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT)
+        stderr=subprocess.STDOUT,
+    )
     return float(result.stdout)
 
 
@@ -80,7 +110,9 @@ def frames(
     if total_video_duration * fps + len(images) > config.max_frames:
         fps = max(int((config.max_frames - len(images)) / total_video_duration), 1)
         if fps == 0:
-            _logger.warning("Unable to reduce fps to stay under max frames, using fps = 1")
+            _logger.warning(
+                "Unable to reduce fps to stay under max frames, using fps = 1"
+            )
         else:
             _logger.warning(f"Reducing fps to {fps} to stay under max frames")
 
@@ -109,7 +141,9 @@ def frames(
                     stderr=sys.stderr,
                 )
                 if result.returncode != 0:
-                    raise ValueError(f"ffmpeg failed on file {file} with code {result.returncode}, and stderr:\n\n{result.stderr.decode()}")
+                    raise ValueError(
+                        f"ffmpeg failed on file {file} with code {result.returncode}, and stderr:\n\n{result.stderr.decode()}"
+                    )
 
         _logger.info("Copying images to output dir")
         # copy all images to output dir
@@ -134,7 +168,13 @@ def point_cloud(
     executable = sys.executable
     script = str(Path(gaussian_splat_config.splatting_repo_dir) / "convert.py")
     result = subprocess.run(
-        [executable, script, "-s", str(data_dir)],
+        [
+            executable,
+            script,
+            "-s",
+            str(data_dir),
+            "--resize",
+        ],
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
@@ -145,7 +185,6 @@ def point_cloud(
         )
 
     marshaller.upload_dir(data_dir, gaussian_splat_config.get_root_dir())
-
 
 
 @asset(deps=[point_cloud])
@@ -189,7 +228,9 @@ def trained_ply_file(
             f"{script} failed with code {result.returncode} and stderr:\n\n{result.stderr.decode()}"
         )
 
-    marshaller.upload_dir(output_dir, str(Path(gaussian_splat_config.get_root_dir()) / "output"))
+    marshaller.upload_dir(
+        output_dir, str(Path(gaussian_splat_config.get_root_dir()) / "output")
+    )
 
 
 @asset(deps=[trained_ply_file])

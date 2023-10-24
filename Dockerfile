@@ -61,6 +61,11 @@ ENV PATH=/opt/conda/envs/gaussian_splatting:/splatting:${PATH}
 RUN echo "conda activate gaussian_splatting" >> ~/.bashrc
 # SHELL ["/bin/bash", "--login", "-c"]
 
+
+# TODO: move to main apt calls
+
+RUN apt update && apt install imagemagick
+
 COPY ./gaussian-splatting/. ./
 
 
