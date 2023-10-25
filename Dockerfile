@@ -64,7 +64,7 @@ RUN echo "conda activate gaussian_splatting" >> ~/.bashrc
 
 # TODO: move to main apt calls
 
-RUN apt update && apt install imagemagick
+RUN apt update && apt install imagemagick -y
 
 COPY ./gaussian-splatting/. ./
 
