@@ -78,6 +78,28 @@ def get_length(filename: str):
     return float(result.stdout)
 
 
+def get_dimensions(filename: str) -> tuple[int, int]:
+    # ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 input.mp4
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height",
+            "-of",
+            "csv=s=x:p=0",
+            filename,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    dimensions = result.stdout.decode().strip().split("x")
+    return int(dimensions[0]), int(dimensions[1])
+
+
 @asset
 def frames(
     marshaller: Marshaller,
