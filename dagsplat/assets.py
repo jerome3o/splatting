@@ -1,6 +1,7 @@
 import sys
 import os
 import tempfile
+import math
 from pathlib import Path
 from pydantic import Field
 import subprocess
@@ -74,7 +75,7 @@ def get_length(filename: str):
             filename,
         ],
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stderr=sys.stderr,
     )
     return float(result.stdout)
 
@@ -95,7 +96,7 @@ def get_dimensions(filename: str) -> tuple[int, int]:
             filename,
         ],
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stderr=sys.stderr,
     )
     dimensions = result.stdout.decode().strip().split("x")
     return int(dimensions[0]), int(dimensions[1])
@@ -110,10 +111,11 @@ def resize_image(filename: str, w: int, h: int) -> str:
             filename,
             "-vf",
             f"scale={w}:{h}",
+            "-y",
             out_filename,
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
     )
     result.check_returncode()
     return out_filename
@@ -125,8 +127,10 @@ def resize_if_needed(filename: str, max_pixels: int) -> str:
     if n_pixels <= max_pixels:
         return filename
 
-    ratio = max_pixels / n_pixels
+
+    ratio = math.sqrt(max_pixels / n_pixels)
     new_w, new_h = int(w * ratio), int(h * ratio)
+    _logger.info(f"Resizing {filename} to {new_w}x{new_h}")
     return resize_image(filename, new_w, new_h)
 
 
@@ -193,7 +197,7 @@ def frames(
                         "1",
                         "-vf",
                         f"fps={fps}",
-                        f"{tmp_dir}/{i}%04d.jpg",
+                        f"{tmp_dir}/frame_{i}%04d.jpg",
                     ],
                     stdout=sys.stdout,
                     stderr=sys.stderr,
@@ -207,6 +211,9 @@ def frames(
         # copy all images to output dir
         for p in images:
             shutil.copy(p, f"{tmp_dir}/input_image_{p.name}")
+
+        for i, image_fn in enumerate(Path(tmp_dir).iterdir()):
+            image_fn.rename(image_fn.with_stem(f"{i:05}"))
 
         _logger.info("Uploading images to output dir")
         marshaller.upload_dir(tmp_dir, output_dir)
