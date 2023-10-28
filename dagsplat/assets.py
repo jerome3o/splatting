@@ -33,7 +33,7 @@ _VIDEO_FILE_EXTENSIONS = [
     "AVI",
 ]
 _IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png"]
-
+_N_PIXELS_1080p = 2073600
 
 class GaussianSplatConfig(ConfigurableResource):
     input_dir: str
@@ -52,6 +52,7 @@ class GaussianSplatConfig(ConfigurableResource):
 class FramesConfig(Config):
     frames_per_second: int = 6
     max_frames: int = 600
+    max_pixels: int = _N_PIXELS_1080p
     video_file_extensions: list[str] = Field(
         default_factory=lambda: list(_VIDEO_FILE_EXTENSIONS)
     )
@@ -100,6 +101,35 @@ def get_dimensions(filename: str) -> tuple[int, int]:
     return int(dimensions[0]), int(dimensions[1])
 
 
+def resize_image(filename: str, w: int, h: int) -> str:
+    out_filename = str(Path(filename).with_stem(Path(filename).stem + "_resized"))
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-i",
+            filename,
+            "-vf",
+            f"scale={w}:{h}",
+            out_filename,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    result.check_returncode()
+    return out_filename
+
+
+def resize_if_needed(filename: str, max_pixels: int) -> str:
+    w, h = get_dimensions(filename)
+    n_pixels = w*h
+    if n_pixels <= max_pixels:
+        return filename
+
+    ratio = max_pixels / n_pixels
+    new_w, new_h = int(w * ratio), int(h * ratio)
+    return resize_image(filename, new_w, new_h)
+
+
 @asset
 def frames(
     marshaller: Marshaller,
@@ -118,6 +148,12 @@ def frames(
         for p in Path(input_dir).glob(f"**/*.{extension}")
     ]
     _logger.info(f"Found {len(video_files)} video files")
+
+    # resize if needed
+    video_files = [
+        resize_if_needed(filename=filename, max_pixels=config.max_pixels)
+        for filename in video_files
+    ]
 
     images = [
         p
