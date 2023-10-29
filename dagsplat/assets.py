@@ -7,6 +7,8 @@ from pydantic import Field
 import subprocess
 import shutil
 
+from PIL import Image
+
 from dagster import (
     asset,
     define_asset_job,
@@ -80,7 +82,7 @@ def get_length(filename: str):
     return float(result.stdout)
 
 
-def get_dimensions(filename: str) -> tuple[int, int]:
+def get_video_dimensions(filename: str) -> tuple[int, int]:
     # ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 input.mp4
     result = subprocess.run(
         [
@@ -102,7 +104,7 @@ def get_dimensions(filename: str) -> tuple[int, int]:
     return int(dimensions[0]), int(dimensions[1])
 
 
-def resize_image(filename: str, w: int, h: int) -> str:
+def resize_video(filename: str, w: int, h: int) -> str:
     out_filename = str(Path(filename).with_stem(Path(filename).stem + "_resized"))
     result = subprocess.run(
         [
@@ -121,8 +123,8 @@ def resize_image(filename: str, w: int, h: int) -> str:
     return out_filename
 
 
-def resize_if_needed(filename: str, max_pixels: int) -> str:
-    w, h = get_dimensions(filename)
+def resize_video_if_needed(filename: str, max_pixels: int) -> str:
+    w, h = get_video_dimensions(filename)
     n_pixels = w*h
     if n_pixels <= max_pixels:
         return filename
@@ -131,7 +133,21 @@ def resize_if_needed(filename: str, max_pixels: int) -> str:
     ratio = math.sqrt(max_pixels / n_pixels)
     new_w, new_h = int(w * ratio), int(h * ratio)
     _logger.info(f"Resizing {filename} to {new_w}x{new_h}")
-    return resize_image(filename, new_w, new_h)
+    return resize_video(filename, new_w, new_h)
+
+
+def resize_image_if_needed(filename: str, max_pixels: int) -> None:
+    image = Image.open(filename)
+    w, h = image.size
+    n_pixels = w*h
+    if n_pixels <= max_pixels:
+        return
+
+    ratio = math.sqrt(max_pixels / n_pixels)
+    new_w, new_h = int(w * ratio), int(h * ratio)
+    _logger.info(f"Resizing {filename} to {new_w}x{new_h}")
+    image = image.resize((new_w, new_h), Image.ANTIALIAS)
+    image.save(filename)
 
 
 @asset
@@ -152,12 +168,6 @@ def frames(
         for p in Path(input_dir).glob(f"**/*.{extension}")
     ]
     _logger.info(f"Found {len(video_files)} video files")
-
-    # resize if needed
-    video_files = [
-        resize_if_needed(filename=filename, max_pixels=config.max_pixels)
-        for filename in video_files
-    ]
 
     images = [
         p
@@ -214,6 +224,9 @@ def frames(
 
         for i, image_fn in enumerate(Path(tmp_dir).iterdir()):
             image_fn.rename(image_fn.with_stem(f"{i:05}"))
+
+        for i, image_fn in enumerate(Path(tmp_dir).iterdir()):
+            resize_image_if_needed(image_fn, config.max_pixels)
 
         _logger.info("Uploading images to output dir")
         marshaller.upload_dir(tmp_dir, output_dir)
